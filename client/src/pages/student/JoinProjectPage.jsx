@@ -796,50 +796,45 @@ export default function JoinProjectPage() {
   };
 
   const join = async () => {
-    if (!preview || loading) return;
+  if (!preview || loading) return;
 
-    if (isAlreadyMember) {
-      openProject();
-      return;
+  if (isAlreadyMember) {
+    openProject();
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const projectCode = preview.code || code.trim();
+
+    if (typeof api.joinByCode !== 'function') {
+      throw new Error(
+        'joinByCode API is missing from api.js.',
+      );
     }
 
-    setLoading(true);
+    const response = await api.joinByCode(projectCode);
 
-    try {
-      let response;
+    toast.success(
+      response?.message ||
+        response?.data?.message ||
+        'Your request to join the project was submitted.',
+    );
 
-      if (typeof api.joinProjectByCode === 'function') {
-        response = await api.joinProjectByCode(preview.code || code.trim());
-      } else if (typeof api.joinProject === 'function') {
-        response = await api.joinProject(
-          preview.project_id || preview.id || preview.code,
-        );
-      } else if (typeof api.requestToJoinProject === 'function') {
-        response = await api.requestToJoinProject(
-          preview.project_id || preview.id || preview.code,
-        );
-      } else {
-        throw new Error('Project joining is not configured in api.js.');
-      }
+    await projectsQuery.refetch();
 
-      toast.success(
-        response?.message ||
-          response?.data?.message ||
-          'Your request to join the project was submitted.',
-      );
-
-      await projectsQuery.refetch();
-      openProject(preview);
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          'Unable to join this project. Please try again.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    openProject(preview);
+  } catch (error) {
+    toast.error(
+      error?.response?.data?.message ||
+        error?.message ||
+        'Unable to join this project. Please try again.',
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const reset = () => {
     setCode('');
